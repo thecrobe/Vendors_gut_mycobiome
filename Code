@@ -1,0 +1,42 @@
+#Machine learning#
+library(randomForest)
+library(vegan)
+require(caTools)
+library(caret)
+library(mlbench)
+
+data<-read.csv(file="./machine learning/ml_data.csv", header=T, row.names = 1)
+dim(data)
+pretransform<-(data[,3:272])
+dim(pretransform)
+transformed_data<-decostand(pretransform, method = "hellinger") #transform to hellinger 
+write.csv(transformed_data,"./machine learning/transformed.csv")
+dataset<-read.csv(file="./machine learning/ml_data_subset_fat.csv", header=T) #reimport with names correct, cbind didnt work
+
+# create a list of 80% of the rows in the original dataset we can use for training
+validation_index <- createDataPartition(dataset$Fat, p=0.60, list=FALSE)
+# select 20% of the data for validation
+validation <- dataset[-validation_index,]
+# use the remaining 80% of data to training and testing the models
+dim(dataset)
+sapply(dataset, class)
+head(dataset)
+
+# Run algorithms using 10-fold cross validation
+control <- trainControl(method="cv", number=10)
+metric <- "RMSE"
+
+# Random Forest
+set.seed(7)
+fit.rf <- train(Fat~., data=dataset, method="rf", metric=metric, trControl=control)
+fit.rf
+
+
+# Model Preformnance
+predictions <- predict(fit.rf, validation)
+RMSE(predictions,validation$Fat)
+
+# Variable importance 
+rfImp <- varImp(fit.rf)
+rfImp
+plot(rfImp,top = 20)
